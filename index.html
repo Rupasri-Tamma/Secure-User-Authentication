@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptaAuth | Secure Authentication & Role-Based Access Dashboard</title>
+    <meta name="description" content="A state-of-the-art secure authentication system demonstrating Web Crypto API hashing, PBKDF2 salting, session management, and RBAC dashboard.">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Background Particle Canvas -->
+    <canvas id="bg-canvas" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -2; pointer-events: none; opacity: 0.7;"></canvas>
+
+    <!-- Background Animated Blobs (Backup depth layer) -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="header-container">
+            <div class="logo-section" id="btn-logo-home">
+                <div class="logo-icon">
+                    <i data-lucide="shield-check"></i>
+                </div>
+                <span class="logo-text">CryptaAuth</span>
+                <span class="logo-badge">TASK-01</span>
+            </div>
+            
+            <nav class="nav-links">
+                <!-- Logged Out Nav -->
+                <button class="btn-nav active" id="nav-btn-login"><i data-lucide="log-in"></i> Sign In</button>
+                <button class="btn-nav" id="nav-btn-register"><i data-lucide="user-plus"></i> Register</button>
+                
+                <!-- Logged In Nav -->
+                <div class="user-nav-profile hidden" id="nav-profile-section">
+                    <div class="avatar-nav" id="nav-avatar-box">A</div>
+                    <div class="user-nav-info">
+                        <span class="nav-username" id="nav-display-username">Username</span>
+                        <span class="nav-role badge-role" id="nav-display-role">Role</span>
+                    </div>
+                    <button class="btn-nav" id="nav-btn-logout" title="Sign Out">
+                        <i data-lucide="log-out"></i>
+                    </button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main>
+        <!-- 1. LOGIN VIEW -->
+        <section id="view-login" class="auth-card">
+            <div class="auth-header">
+                <div class="auth-icon-wrap">
+                    <i data-lucide="lock"></i>
+                </div>
+                <h1 class="auth-title">Welcome Back</h1>
+                <p class="auth-subtitle">Access your protected workspace securely</p>
+            </div>
+            
+            <form id="form-login" novalidate>
+                <div class="form-group">
+                    <label class="form-label" for="login-username">Username</label>
+                    <div class="input-container">
+                        <input class="input-field" type="text" id="login-username" placeholder="Enter username" autocomplete="username" required>
+                        <i class="input-icon" data-lucide="user"></i>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="login-password">Password</label>
+                    <div class="input-container">
+                        <input class="input-field" type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required>
+                        <i class="input-icon" data-lucide="key-round"></i>
+                        <button type="button" class="input-toggle-pwd" tabindex="-1"><i data-lucide="eye"></i></button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-primary mt-6">
+                    <span>Authenticate</span>
+                    <i data-lucide="arrow-right"></i>
+                </button>
+            </form>
+            
+            <div class="auth-footer">
+                Don't have an account? <span class="auth-link" id="link-goto-register">Register here</span>
+            </div>
+        </section>
+
+        <!-- 2. REGISTER VIEW -->
+        <section id="view-signup" class="auth-card hidden">
+            <div class="auth-header">
+                <div class="auth-icon-wrap">
+                    <i data-lucide="user-plus"></i>
+                </div>
+                <h1 class="auth-title">Create Account</h1>
+                <p class="auth-subtitle">Register and configure your authorization role</p>
+            </div>
+            
+            <form id="form-register" novalidate>
+                <div class="form-group">
+                    <label class="form-label" for="reg-name">Full Name</label>
+                    <div class="input-container">
+                        <input class="input-field" type="text" id="reg-name" placeholder="John Doe" required>
+                        <i class="input-icon" data-lucide="signature"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="reg-email">Email Address</label>
+                    <div class="input-container">
+                        <input class="input-field" type="email" id="reg-email" placeholder="john@example.com" autocomplete="email" required>
+                        <i class="input-icon" data-lucide="mail"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="reg-username">Username</label>
+                    <div class="input-container">
+                        <input class="input-field" type="text" id="reg-username" placeholder="johndoe" autocomplete="username" required>
+                        <i class="input-icon" data-lucide="user"></i>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="reg-password">Password</label>
+                    <div class="input-container">
+                        <input class="input-field" type="password" id="reg-password" placeholder="••••••••" autocomplete="new-password" required>
+                        <i class="input-icon" data-lucide="key-round"></i>
+                        <button type="button" class="input-toggle-pwd" tabindex="-1"><i data-lucide="eye"></i></button>
+                    </div>
+                    
+                    <!-- Live Strength Verification Meter -->
+                    <div class="password-strength-container" id="reg-pwd-strength-container" style="display: none;">
+                        <div class="strength-meter-bar">
+                            <div class="strength-meter-fill" id="reg-pwd-strength-fill"></div>
+                        </div>
+                        <div class="strength-meter-flex">
+                            <span class="strength-meter-text" id="reg-pwd-strength-text">Weak</span>
+                            <span class="strength-rules-hint">Rules matched</span>
+                        </div>
+                        <ul class="password-rules-list">
+                            <li id="rule-len"><i data-lucide="x-circle"></i> Minimum 8 characters</li>
+                            <li id="rule-num"><i data-lucide="x-circle"></i> Contains a digit (0-9)</li>
+                            <li id="rule-spec"><i data-lucide="x-circle"></i> Contains a special character (!@#$)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="reg-role">Assign Role</label>
+                    <div class="select-container">
+                        <select class="select-field" id="reg-role">
+                            <option value="user">Regular User (Access: Profile, Security Lab)</option>
+                            <option value="editor">Editor (Access: Profile, Security Lab, Editor Panel)</option>
+                            <option value="admin">Administrator (Access: All Panels, User Admin, Session Config)</option>
+                        </select>
+                        <i class="input-icon" data-lucide="shield"></i>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-primary mt-6">
+                    <span>Initialize Secure Sign Up</span>
+                    <i data-lucide="check"></i>
+                </button>
+            </form>
+            
+            <div class="auth-footer">
+                Already registered? <span class="auth-link" id="link-goto-login">Sign in here</span>
+            </div>
+        </section>
+
+        <!-- 3. DASHBOARD MAIN VIEW -->
+        <section id="view-dashboard" class="dashboard-grid hidden">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-title">Workspace</div>
+                <div class="sidebar-menu">
+                    <!-- Sliding active highlight element in sidebar -->
+                    <div class="nav-indicator-pill" id="sidebar-indicator"></div>
+                    <div class="sidebar-link active" data-tab="tab-profile">
+                        <i data-lucide="user-cog"></i> Profile Settings
+                    </div>
+                    <div class="sidebar-link" data-tab="tab-security-lab">
+                        <i data-lucide="binary"></i> Cryptography Lab
+                    </div>
+                    <div class="sidebar-link" data-tab="tab-editor" id="side-link-editor">
+                        <i data-lucide="file-text"></i> Editor Workspace
+                    </div>
+                    <div class="sidebar-link" data-tab="tab-admin" id="side-link-admin">
+                        <i data-lucide="shield-alert"></i> Admin Panel
+                    </div>
+                    <div class="sidebar-link" data-tab="tab-sessions" id="side-link-sessions">
+                        <i data-lucide="activity"></i> Session Control
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Active Workspace Content Card -->
+            <div class="dashboard-content">
+                <!-- Tab: Profile Settings -->
+                <div class="content-card tab-view" id="tab-profile">
+                    <div class="content-header">
+                        <h2 class="content-title">Profile Settings</h2>
+                        <span class="badge-role" id="profile-role-badge">User</span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+                        <div>
+                            <p style="color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.6;">
+                                Below are your account parameters stored securely within the browser sandbox database. Your password details are verified using hashed validations.
+                            </p>
+                            
+                            <div class="session-info-grid">
+                                <div class="session-info-label">Full Name:</div>
+                                <div class="session-info-value" id="profile-val-name">Loading...</div>
+
+                                <div class="session-info-label">Email:</div>
+                                <div class="session-info-value" id="profile-val-email">Loading...</div>
+
+                                <div class="session-info-label">Username:</div>
+                                <div class="session-info-value" id="profile-val-username">Loading...</div>
+
+                                <div class="session-info-label">Current Role:</div>
+                                <div class="session-info-value" id="profile-val-role">Loading...</div>
+
+                                <div class="session-info-label">Password Hash:</div>
+                                <div class="session-info-value" id="profile-val-hash" style="font-size: 0.75rem;">Loading...</div>
+                                
+                                <div class="session-info-label">Salt:</div>
+                                <div class="session-info-value" id="profile-val-salt" style="font-size: 0.75rem;">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Cryptography Lab -->
+                <div class="content-card tab-view hidden" id="tab-security-lab">
+                    <div class="content-header">
+                        <h2 class="content-title">Interactive Cryptography Lab</h2>
+                        <i data-lucide="cpu" style="color: var(--accent-purple);"></i>
+                    </div>
+
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.6;">
+                        Compare the performance and security differences between simple <b>SHA-256 Hashing</b> and industry-standard key stretching with <b>PBKDF2</b>. PBKDF2 forces higher CPU usage (computational delay) to make brute-forcing password cracking non-viable.
+                    </p>
+
+                    <div class="lab-grid">
+                        <div class="lab-panel">
+                            <div class="lab-panel-title">
+                                <i data-lucide="keyboard" style="color: var(--accent-blue);"></i> Simulation Input
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="lab-pwd-input">Test Password</label>
+                                <div class="input-container">
+                                    <input class="input-field" style="padding-left: 1.1rem;" type="text" id="lab-pwd-input" value="SecurityTesting123!" placeholder="Type a password...">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="lab-salt-input">Dynamic Salt (Hex)</label>
+                                <div class="input-container">
+                                    <input class="input-field" style="padding-left: 1.1rem; font-family: var(--font-mono); font-size: 0.8rem;" type="text" id="lab-salt-input" readonly>
+                                    <button class="btn-icon" id="btn-regen-salt" style="position: absolute; right: 8px; height: 34px; width: 34px;" title="Regenerate Salt">
+                                        <i data-lucide="refresh-cw"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="lab-iterations-input">PBKDF2 Iterations</label>
+                                <div class="select-container">
+                                    <select class="select-field" style="padding-left: 1.1rem;" id="lab-iterations-input">
+                                        <option value="1000">1,000 Iterations (Fast/Weaker)</option>
+                                        <option value="50000">50,000 Iterations</option>
+                                        <option value="100000" selected>100,000 Iterations (Recommended)</option>
+                                        <option value="200000">200,000 Iterations (Slower/Strongest)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="lab-panel" style="display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+                            <div class="lab-panel-title">
+                                <i data-lucide="gauge" style="color: var(--accent-purple);"></i> Computational Delay comparison
+                            </div>
+
+                            <div class="lab-comparison-row">
+                                <div class="comparison-box sha256">
+                                    <div class="comparison-box-header">
+                                        <span class="comparison-name">Standard SHA-256</span>
+                                        <span class="comparison-time" id="lab-sha-time">0.00 ms</span>
+                                    </div>
+                                    <div class="comparison-hash-wrap" id="lab-sha-hash">Type a password...</div>
+                                    <div class="time-bar-bg">
+                                        <div class="time-bar" id="lab-sha-bar"></div>
+                                    </div>
+                                </div>
+
+                                <div class="comparison-box pbkdf2">
+                                    <div class="comparison-box-header">
+                                        <span class="comparison-name">PBKDF2 (HMAC-SHA256)</span>
+                                        <span class="comparison-time" id="lab-pbk-time">0.00 ms</span>
+                                    </div>
+                                    <div class="comparison-hash-wrap" id="lab-pbk-hash">Type a password...</div>
+                                    <div class="time-bar-bg">
+                                        <div class="time-bar" id="lab-pbk-bar"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="speed-comparison-alert">
+                                <i data-lucide="info" style="flex-shrink: 0; margin-top: 2px;"></i>
+                                <span id="lab-ratio-text">
+                                    PBKDF2 introduces key-stretching delay. This delay prevents rapid GPU calculations of pre-computed hash tables.
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- NEW Stepper UI showing cryptographic flow -->
+                        <div class="lab-panel mt-6" style="grid-column: 1 / -1;">
+                            <div class="lab-panel-title">
+                                <i data-lucide="split" style="color: var(--accent-emerald);"></i> Cryptographic Data Flow Stepper
+                            </div>
+                            <div class="crypto-stepper">
+                                <div class="stepper-step active" id="step-plaintext">
+                                    <div class="step-num">1</div>
+                                    <div class="step-label">Plaintext Password</div>
+                                    <div class="step-value" id="step-val-plain">Input Password</div>
+                                </div>
+                                <div class="stepper-arrow"><i data-lucide="arrow-right"></i></div>
+                                <div class="stepper-step" id="step-salt">
+                                    <div class="step-num">2</div>
+                                    <div class="step-label">Concatenation with Salt</div>
+                                    <div class="step-value" id="step-val-salt">Salt String</div>
+                                </div>
+                                <div class="stepper-arrow"><i data-lucide="arrow-right"></i></div>
+                                <div class="stepper-step" id="step-stretch">
+                                    <div class="step-num">3</div>
+                                    <div class="step-label">100k Key Derivation</div>
+                                    <div class="step-value" id="step-val-stretch">PBKDF2 iterations</div>
+                                </div>
+                                <div class="stepper-arrow"><i data-lucide="arrow-right"></i></div>
+                                <div class="stepper-step" id="step-hash">
+                                    <div class="step-num">4</div>
+                                    <div class="step-label">Derived Secret Hash</div>
+                                    <div class="step-value" id="step-val-hash">Hashed Key</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Tab: Editor Panel -->
+                <div class="content-card tab-view hidden" id="tab-editor">
+                    <div class="content-header">
+                        <h2 class="content-title">Editor Workspace</h2>
+                        <i data-lucide="edit" style="color: var(--accent-blue);"></i>
+                    </div>
+                    
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.6;">
+                        Welcome to the content drafting dashboard. This route is protected and accessible only to <b>Editors</b> and <b>Administrators</b>.
+                    </p>
+
+                    <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem;">
+                        <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 1rem;">Draft Article</h3>
+                        <div class="form-group">
+                            <label class="form-label" for="edit-title">Article Title</label>
+                            <input class="input-field" style="padding-left: 1.1rem;" type="text" id="edit-title" value="10 Cyber-Security Best Practices for Web Development">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="edit-content">Content Body</label>
+                            <textarea class="input-field" style="padding-left: 1.1rem; min-height: 120px; font-family: var(--font-sans);" id="edit-content">1. Never store raw passwords. Always use modern cryptographic functions like PBKDF2, bcrypt, or Argon2.
+2. Implement rate limiting on authentication routes to mitigate brute-force attempts.
+3. Validate user tokens and sessions server-side before serving sensitive data...</textarea>
+                        </div>
+                        <button class="btn-primary" style="width: auto; padding: 0.75rem 1.5rem;" id="btn-save-draft">
+                            <i data-lucide="save"></i> Save Content
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab: Admin Panel -->
+                <div class="content-card tab-view hidden" id="tab-admin">
+                    <div class="content-header">
+                        <h2 class="content-title">Admin Dashboard</h2>
+                        <i data-lucide="terminal" style="color: var(--accent-purple);"></i>
+                    </div>
+
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.6;">
+                        This area is reserved for users with <b>Administrator</b> level clearance. It lists all registered identities and grants permission to edit roles, drop users, or clear the system audit trail.
+                    </p>
+
+                    <!-- User Search and Directory cards layout -->
+                    <div class="flex justify-between align-center mb-4">
+                        <h3 style="font-family: var(--font-display); font-size: 1.25rem;">User Directory</h3>
+                        <div class="input-container" style="max-width: 320px; width: 100%;">
+                            <input class="input-field" type="text" id="admin-search-users" placeholder="Search identities..." style="padding: 0.6rem 1.1rem 0.6rem 2.4rem; font-size: 0.85rem;">
+                            <i class="input-icon" data-lucide="search" style="left: 0.8rem; font-size: 0.95rem;"></i>
+                        </div>
+                    </div>
+
+                    <div class="user-cards-grid" id="admin-user-cards">
+                        <!-- Loaded dynamically via app.js -->
+                    </div>
+
+                    <div class="flex justify-between align-center mt-8">
+                        <h3 style="font-family: var(--font-display); font-size: 1.25rem;">Security Audit Logs</h3>
+                        <button class="btn-secondary" id="btn-clear-logs" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <i data-lucide="trash-2"></i> Clear Logs
+                        </button>
+                    </div>
+                    <div class="terminal-view mt-4" id="admin-logs-terminal">
+                        <!-- Loaded dynamically via app.js -->
+                    </div>
+                </div>
+
+                <!-- Tab: Session Control -->
+                <div class="content-card tab-view hidden" id="tab-sessions">
+                    <div class="content-header">
+                        <h2 class="content-title">Session Control & Live Inspector</h2>
+                        <i data-lucide="pulse" style="color: var(--accent-emerald);"></i>
+                    </div>
+
+                    <div class="session-panel-layout">
+                        <div>
+                            <p style="color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.6;">
+                                Manage current session token parameters. To test session expiration, you can modify the lifetime below or trigger an immediate timeout simulation.
+                            </p>
+
+                            <div class="form-group">
+                                <label class="form-label" for="sess-timeout-val">Session Lifetime</label>
+                                <div class="select-container">
+                                    <select class="select-field" style="padding-left: 1.1rem;" id="sess-timeout-val">
+                                        <option value="15">15 Seconds (Quick Test)</option>
+                                        <option value="60">1 Minute</option>
+                                        <option value="300" selected>5 Minutes (Default)</option>
+                                        <option value="3600">1 Hour</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 1rem;">
+                                <button class="btn-primary" id="btn-refresh-session" style="background: var(--grad-success);"><i data-lucide="refresh-cw"></i> Refresh Token</button>
+                                <button class="btn-danger" id="btn-simulate-expire"><i data-lucide="timer-off"></i> Force Expire</button>
+                            </div>
+                        </div>
+
+                        <div style="border-left: 1px solid var(--border-color); padding-left: 2rem;">
+                            <div class="session-badge-active">Active Session Detected</div>
+
+                            <div class="session-info-grid">
+                                <div class="session-info-label">Token:</div>
+                                <div class="session-info-value" id="session-val-token">Loading...</div>
+
+                                <div class="session-info-label">Username:</div>
+                                <div class="session-info-value" id="session-val-user">Loading...</div>
+
+                                <div class="session-info-label">Expires:</div>
+                                <div class="session-info-value" id="session-val-expires">Loading...</div>
+
+                                <div class="session-info-label">Remaining:</div>
+                                <div class="session-info-value" id="session-val-remaining" style="color: var(--accent-amber); font-weight: bold;">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. ACCESS DENIED VIEW -->
+        <section id="view-access-denied" class="denied-container hidden">
+            <div class="denied-icon">
+                <i data-lucide="shield-alert"></i>
+            </div>
+            <h1 class="denied-title">Access Denied</h1>
+            <p class="denied-desc">
+                Your account privileges do not allow viewing this directory. Please sign in with an account having elevated permissions.
+            </p>
+            <button class="btn-primary" id="btn-denied-back" style="max-width: 200px; margin: 0 auto;">
+                <i data-lucide="arrow-left"></i> Return Home
+            </button>
+        </section>
+    </main>
+
+    <!-- Session Warning Modal Overlay -->
+    <div class="modal-overlay hidden" id="session-warning-modal">
+        <div class="modal-card">
+            <div class="modal-icon warning">
+                <i data-lucide="alert-triangle"></i>
+            </div>
+            <h3 class="modal-title">Session Expiring Soon</h3>
+            <p class="modal-desc">
+                Your active security session token will expire in <span id="modal-warning-seconds">10</span> seconds due to inactivity limits.
+            </p>
+            <div class="modal-actions">
+                <button class="btn-primary" id="btn-modal-extend" style="background: var(--grad-success); margin: 0;">Extend Session</button>
+                <button class="btn-secondary" id="btn-modal-logout" style="margin: 0;">Logout Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Font Awesome replacement Lucide Script -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
